@@ -1,29 +1,27 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, BackgroundTasks
 import httpx
 import asyncio
-from contextlib import asynccontextmanager
 
+app = FastAPI()
 ceny = {}
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
+async def aktualizuj_ceny():
     while True:
         async with httpx.AsyncClient() as client:
             r = await client.get("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=eur")
             if r.status_code == 200:
-                data = r.json()
-                ceny.update({
-                    "bitcoin": float(data["bitcoin"]["eur"]),
-                    "ethereum": float(data["ethereum"]["eur"])
-                })
+                ceny.update(r.json())
+                print("Aktualizovane ceny:", ceny)
         await asyncio.sleep(2)
-        yield
 
-app = FastAPI(lifespan=lifespan)
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(aktualizuj_ceny())
 
 @app.get("/ceny")
 async def get_ceny():
     return ceny
+
 
 # 🔥 Dôležité pre Railway
 if __name__ == "__main__":
