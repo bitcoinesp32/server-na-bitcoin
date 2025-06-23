@@ -14,9 +14,12 @@ async def lifespan(app: FastAPI):
                     r = await client.get("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=eur")
                     if r.status_code == 200:
                         ceny.update(r.json())
+                        print("Ceny aktualizovane:", ceny)
+                    else:
+                        print("Chyba HTTP:", r.status_code)
             except Exception as e:
                 print("Chyba pri stahovani dat:", e)
-            await asyncio.sleep(2)
+            await asyncio.sleep(10)  # aktualizuj kazdych 10s
 
     task = asyncio.create_task(aktualizuj_ceny())
     yield
@@ -28,9 +31,6 @@ app = FastAPI(lifespan=lifespan)
 async def get_ceny():
     return ceny
 
-# 🔥 Toto je dolezite pre Railway:
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8080)
-
-
+    uvicorn.run("mai
